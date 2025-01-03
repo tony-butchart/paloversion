@@ -144,7 +144,10 @@ Options:
 	
 	Requires all input as arguments to the script, e.g.:
 	paloversion.sh -p \"2:12345AUTHKEY\" -t \"panupv2-all-contents-1234-5678\" -a \"panup-all-antivirus-1234-5678\"  -lzc \"192.0.2.1\" \"admin\" \"password\" \"/home/PA/Firmware/\" \"8.1.15-h3\"
-	Arguments are mandatory according to the features selected.
+
+	Arguments are mandatory according to the features selected, when run with non-interactive & batch mode together the IP argument should be dropped, e.g.:
+	paloversion.sh -fz \"admin\" \"password\" \"/home/PA/Firmware/\" \"8.1.15-h3\" \"eth0\"
+
 	
 	-m disable batch mode MAC filter
 	
@@ -2242,8 +2245,15 @@ if (( NON_INTERACTIVE == 1 )); then
 	
 	if [[ "$7" != "" ]]; then { echo "Too many arguments. Exiting..."; endbeep; }; fi
 	
-	if (( BATCH_MODE != 1 )); then
-		# Don't need FIREWALL_ADDRESS in batch mode
+	if (( BATCH_MODE == 1 )); then
+		# We don't need FIREWALL_ADDRESS in batch mode, so re-order the optargs
+		USERNAME="$1"
+		ACTIVE_PASSWORD="$2"
+		SOFTWARE_FOLDER="$3"
+		DESIRED_VERSION="$4"
+		NETWORK_INTERFACE="$5"
+
+	else	
 		if ! [[ "$FIREWALL_ADDRESS" =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]]; then
 			if ! [[ "$FIREWALL_ADDRESS" =~ : ]]; then
 				echo "Invalid IPv4 address. Exiting..."

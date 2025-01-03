@@ -2470,7 +2470,7 @@ if (( BATCH_MODE == 1 )); then
 	
 	echo "Autodiscovery complete. Found $FOUND_ADDRESSES addresses."
 	
-	LOG_FILE="PaloVersionBatch.log"
+	LOG_FILE="PaloVersionBatch-$(date +"%d_%m_%Y-%I_%M_%p").log"
 	
 	echo "" > "$LOG_FILE"
 	

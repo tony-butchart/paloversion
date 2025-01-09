@@ -1535,16 +1535,26 @@ do
 	fi
 	RETRYING_CURLER=0
 	KEEPALIVE=$(( SECONDS + 60 ))
+	local ESCAPED_PASS
+	# Escape special characters in the password
+	ESCAPED_PASS=$(echo "$ACTIVE_PASSWORD" | sed -r 's/(\{|\}|\[|\])/\\\1/g')
 	
 	####################################### Timeouts Phase #######################################
 	
 	while (( SECONDS < ARG3 ))
 	do
-		
-		if [[ "$1" =~ fe80 ]]; then
-			CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL -6 --interface "$NETWORK_INTERFACE" -u "${USERNAME}":"${ACTIVE_PASSWORD}" --max-time 1800 --connect-timeout 3 "$4" "$5" "$1")
+		if [[ "$1" =~ "type=keygen" ]]; then
+			if [[ "$1" =~ fe80 ]]; then
+				CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL -6 --interface "$NETWORK_INTERFACE" --max-time 1800 --connect-timeout 3 "${1}&user=${USERNAME}&password=${ESCAPED_PASS}")
+			else
+				CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL --max-time 1800 --connect-timeout 3 "${1}&user=${USERNAME}&password=${ESCAPED_PASS}")
+			fi
 		else
-			CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL -u "${USERNAME}":"${ACTIVE_PASSWORD}" --max-time 1800 --connect-timeout 3 "$4" "$5" "$1")
+			if [[ "$1" =~ fe80 ]]; then
+				CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL -6 --interface "$NETWORK_INTERFACE" -u "${USERNAME}":"${ACTIVE_PASSWORD}" --max-time 1800 --connect-timeout 3 "$4" "$5" "$1")
+			else
+				CURL=$(curl $CURL_CA_IGNORE $SILENT_CURL -u "${USERNAME}":"${ACTIVE_PASSWORD}" --max-time 1800 --connect-timeout 3 "$4" "$5" "$1")
+			fi
 		fi
 		
 		CURL_RET_CODE=$?
@@ -2503,9 +2513,7 @@ if (( BATCH_MODE == 1 )); then
 		FIREWALL_ADDRESS="[${i}]"
 		
 		# Use the keygen function twice to ensure we get password change notifications post 10.2 and try both passwords
-		ESCAPED_PASS=""
-		ESCAPED_PASS=$(echo "$ACTIVE_PASSWORD" | sed -r 's/(\{|\}|\[|\])/\\\1/g')
-		curler "https://[${i}]/api/?type=keygen&user=${USERNAME}&password=${ESCAPED_PASS}" "/response/@status" 10 1>/dev/null || curler "https://[${i}]/api/?type=keygen&user=${USERNAME}&password=${ESCAPED_PASS}" "/response/@status" 10 1>/dev/null || endbeep
+		curler "https://[${i}]/api/?type=keygen" "/response/@status" 10 1>/dev/null || curler "https://[${i}]/api/?type=keygen" "/response/@status" 10 1>/dev/null || endbeep
 		
 		SERIAL_1=$(curler "https://[${i}]/api/?type=op&cmd=<show><system><info></info></system></show>" "/response/result/system/serial" 60 2> "${i}".log) || { SERIAL_ARRAY+=( "$i" ); STATUS_ARRAY+=( "FAILED" ); date +"%T Firewall at $i init failed. Skipping..." >> "$LOG_FILE"; date +"%T Firewall at $i init failed. Skipping..."; echo "---FAILED---" >> "${i}.log"; continue; }
 		
